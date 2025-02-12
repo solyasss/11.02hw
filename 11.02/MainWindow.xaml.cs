@@ -8,7 +8,7 @@ namespace hw
 {
     public partial class MainWindow : Window
     {
-        private static Mutex mutex_file = new Mutex(false, "d93cb2ac-6605-4a02-8afb-c8630f6ea2c7\n", out bool createdNew); 
+        private static Mutex mutex_file = new Mutex(false, "d93cb2ac-6605-4a02-8afb-c8630f6ea2c7\n", out bool createdNew);
 
         public MainWindow()
         {
@@ -18,14 +18,18 @@ namespace hw
         private void start_button_click(object sender, RoutedEventArgs e)
         {
             start_button.IsEnabled = false;
+
             Thread thread_1 = new Thread(thread_first);
+            Thread thread_2 = new Thread(thread_second);
+            Thread thread_3 = new Thread(thread_third);
+
             thread_1.Start();
+            thread_2.Start();
+            thread_3.Start();
         }
 
         private void thread_first()
         {
-            mutex_file.WaitOne();
-
             Dispatcher.Invoke(() =>
             {
                 status_1.Text = "thread 1 is generating random numbers";
@@ -38,6 +42,7 @@ namespace hw
 
             try
             {
+                mutex_file.WaitOne();
                 using (StreamWriter writer = new StreamWriter(file_numbers))
                 {
                     for (int i = 0; i < count_numbers; i++)
@@ -55,15 +60,18 @@ namespace hw
             {
                 Dispatcher.Invoke(() => { status_1.Text = "Error with thread 1: " + ex.Message; });
             }
-
-            mutex_file.ReleaseMutex();
-            Thread thread_2 = new Thread(thread_second);
-            thread_2.Start();
+            finally
+            {
+                mutex_file.ReleaseMutex();
+            }
         }
 
         private void thread_second()
         {
-            mutex_file.WaitOne();
+            while (!File.Exists("numbers.dat"))
+            {
+                Thread.Sleep(100);
+            }
 
             Dispatcher.Invoke(() =>
             {
@@ -77,6 +85,7 @@ namespace hw
 
             try
             {
+                mutex_file.WaitOne();
                 using (StreamReader sr = new StreamReader(file_numbers))
                 {
                     string line;
@@ -90,6 +99,10 @@ namespace hw
             catch (Exception ex)
             {
                 Dispatcher.Invoke(() => { status_2.Text = "Error with reading: " + ex.Message; });
+            }
+            finally
+            {
+                mutex_file.ReleaseMutex();
             }
 
             List<int> primes = new List<int>();
@@ -108,6 +121,7 @@ namespace hw
 
             try
             {
+                mutex_file.WaitOne();
                 using (StreamWriter sw = new StreamWriter(file_primes))
                 {
                     foreach (int num in primes)
@@ -121,15 +135,18 @@ namespace hw
             {
                 Dispatcher.Invoke(() => { status_2.Text = "Error writing prime numbers: " + ex.Message; });
             }
-
-            mutex_file.ReleaseMutex();
-            Thread thread_3 = new Thread(thread_third);
-            thread_3.Start();
+            finally
+            {
+                mutex_file.ReleaseMutex();
+            }
         }
 
         private void thread_third()
         {
-            mutex_file.WaitOne();
+            while (!File.Exists("primes_num.dat"))
+            {
+                Thread.Sleep(100);
+            }
 
             Dispatcher.Invoke(() =>
             {
@@ -143,6 +160,7 @@ namespace hw
 
             try
             {
+                mutex_file.WaitOne();
                 using (StreamReader sr = new StreamReader(file_primes))
                 {
                     string line;
@@ -156,6 +174,10 @@ namespace hw
             catch (Exception ex)
             {
                 Dispatcher.Invoke(() => { status_3.Text = "Error: " + ex.Message; });
+            }
+            finally
+            {
+                mutex_file.ReleaseMutex();
             }
 
             List<int> primes7 = new List<int>();
@@ -174,6 +196,7 @@ namespace hw
 
             try
             {
+                mutex_file.WaitOne();
                 using (StreamWriter sw = new StreamWriter(file_seven))
                 {
                     foreach (int num in primes7)
@@ -187,8 +210,10 @@ namespace hw
             {
                 Dispatcher.Invoke(() => { status_3.Text = "Error with primes: " + ex.Message; });
             }
-
-            mutex_file.ReleaseMutex();
+            finally
+            {
+                mutex_file.ReleaseMutex();
+            }
         }
 
         private bool prime_num(int n)
