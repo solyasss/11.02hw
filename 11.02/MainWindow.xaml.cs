@@ -18,31 +18,23 @@ namespace hw
         private void start_button_click(object sender, RoutedEventArgs e)
         {
             start_button.IsEnabled = false;
-
             Thread thread_1 = new Thread(thread_first);
-            Thread thread_2 = new Thread(thread_second);
-            Thread thread_3 = new Thread(thread_third);
-
             thread_1.Start();
-            thread_2.Start();
-            thread_3.Start();
         }
 
         private void thread_first()
         {
+            mutex_file.WaitOne();
             Dispatcher.Invoke(() =>
             {
                 status_1.Text = "thread 1 is generating random numbers";
                 progress_1.Value = 0;
             });
-
             Random random = new Random();
             int count_numbers = 500;
             string file_numbers = "numbers.dat";
-
             try
             {
-                mutex_file.WaitOne();
                 using (StreamWriter writer = new StreamWriter(file_numbers))
                 {
                     for (int i = 0; i < count_numbers; i++)
@@ -64,28 +56,23 @@ namespace hw
             {
                 mutex_file.ReleaseMutex();
             }
+            Thread thread_2 = new Thread(thread_second);
+            thread_2.Start();
         }
 
         private void thread_second()
         {
-            while (!File.Exists("numbers.dat"))
-            {
-                Thread.Sleep(100);
-            }
-
+            mutex_file.WaitOne();
             Dispatcher.Invoke(() =>
             {
                 status_2.Text = "thread 2 is filtering prime numbers";
                 progress_2.Value = 0;
             });
-
             string file_numbers = "numbers.dat";
             string file_primes = "primes_num.dat";
             List<int> numbers = new List<int>();
-
             try
             {
-                mutex_file.WaitOne();
                 using (StreamReader sr = new StreamReader(file_numbers))
                 {
                     string line;
@@ -104,30 +91,22 @@ namespace hw
             {
                 mutex_file.ReleaseMutex();
             }
-
             List<int> primes = new List<int>();
             int total = numbers.Count;
             for (int i = 0; i < total; i++)
             {
                 int num = numbers[i];
-                if (prime_num(num))
-                {
-                    primes.Add(num);
-                }
+                if (prime_num(num)) primes.Add(num);
                 int prog = (i + 1) * 100 / total;
                 Dispatcher.Invoke(() => { progress_2.Value = prog; });
                 Thread.Sleep(5);
             }
-
+            mutex_file.WaitOne();
             try
             {
-                mutex_file.WaitOne();
                 using (StreamWriter sw = new StreamWriter(file_primes))
                 {
-                    foreach (int num in primes)
-                    {
-                        sw.WriteLine(num);
-                    }
+                    foreach (int num in primes) sw.WriteLine(num);
                 }
                 Dispatcher.Invoke(() => { status_2.Text = $"thread 2 found {primes.Count} prime numbers in file"; });
             }
@@ -139,28 +118,23 @@ namespace hw
             {
                 mutex_file.ReleaseMutex();
             }
+            Thread thread_3 = new Thread(thread_third);
+            thread_3.Start();
         }
 
         private void thread_third()
         {
-            while (!File.Exists("primes_num.dat"))
-            {
-                Thread.Sleep(100);
-            }
-
+            mutex_file.WaitOne();
             Dispatcher.Invoke(() =>
             {
                 status_3.Text = "thread 3 is filtering primes ending with 7";
                 progress_3.Value = 0;
             });
-
             string file_primes = "primes_num.dat";
             string file_seven = "seven_numbers.dat";
             List<int> primes = new List<int>();
-
             try
             {
-                mutex_file.WaitOne();
                 using (StreamReader sr = new StreamReader(file_primes))
                 {
                     string line;
@@ -179,30 +153,22 @@ namespace hw
             {
                 mutex_file.ReleaseMutex();
             }
-
             List<int> primes7 = new List<int>();
             int total = primes.Count;
             for (int i = 0; i < total; i++)
             {
                 int num = primes[i];
-                if (num % 10 == 7)
-                {
-                    primes7.Add(num);
-                }
+                if (num % 10 == 7) primes7.Add(num);
                 int prog = (i + 1) * 100 / total;
                 Dispatcher.Invoke(() => { progress_3.Value = prog; });
                 Thread.Sleep(5);
             }
-
+            mutex_file.WaitOne();
             try
             {
-                mutex_file.WaitOne();
                 using (StreamWriter sw = new StreamWriter(file_seven))
                 {
-                    foreach (int num in primes7)
-                    {
-                        sw.WriteLine(num);
-                    }
+                    foreach (int num in primes7) sw.WriteLine(num);
                 }
                 Dispatcher.Invoke(() => { status_3.Text = $"thread 3 found {primes7.Count} numbers ending with 7 in file"; });
             }
@@ -220,9 +186,7 @@ namespace hw
         {
             if (n < 2) return false;
             for (int i = 2; i <= Math.Sqrt(n); i++)
-            {
                 if (n % i == 0) return false;
-            }
             return true;
         }
     }
