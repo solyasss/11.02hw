@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Reflection;
 using System.Threading;
 using System.Windows;
 
@@ -10,31 +8,32 @@ namespace hw
 {
     public partial class MainWindow : Window
     {
-        private Mutex mutex_file;
+        private static Mutex mutex_file = new Mutex(false, "d93cb2ac-6605-4a02-8afb-c8630f6ea2c7\n", out bool createdNew); 
 
         public MainWindow()
         {
             InitializeComponent();
         }
-        
+
         private void start_button_click(object sender, RoutedEventArgs e)
         {
             start_button.IsEnabled = false;
-            mutex_file = new Mutex();
             Thread thread_1 = new Thread(thread_first);
             thread_1.Start();
         }
-        
+
         private void thread_first()
         {
             mutex_file.WaitOne();
-            Dispatcher.Invoke(() => 
-            { 
-                status_1.Text = "thread 1 is generating random numbers"; 
+
+            Dispatcher.Invoke(() =>
+            {
+                status_1.Text = "thread 1 is generating random numbers";
                 progress_1.Value = 0;
             });
+
             Random random = new Random();
-            int count_numbers = 500; 
+            int count_numbers = 500;
             string file_numbers = "numbers.dat";
 
             try
@@ -50,27 +49,25 @@ namespace hw
                         Thread.Sleep(10);
                     }
                 }
-                Dispatcher.Invoke(() => { status_1.Text = "thread 1 generated " + count_numbers +
-                                                     " numbers in file "; });
+                Dispatcher.Invoke(() => { status_1.Text = $"thread 1 generated {count_numbers} numbers in file"; });
             }
             catch (Exception ex)
             {
                 Dispatcher.Invoke(() => { status_1.Text = "Error with thread 1: " + ex.Message; });
             }
-            
+
             mutex_file.ReleaseMutex();
-            
             Thread thread_2 = new Thread(thread_second);
             thread_2.Start();
         }
-        
+
         private void thread_second()
         {
             mutex_file.WaitOne();
 
-            Dispatcher.Invoke(() => 
-            { 
-                status_2.Text = "thread 2 is filtering prime numbers"; 
+            Dispatcher.Invoke(() =>
+            {
+                status_2.Text = "thread 2 is filtering prime numbers";
                 progress_2.Value = 0;
             });
 
@@ -85,9 +82,8 @@ namespace hw
                     string line;
                     while ((line = sr.ReadLine()) != null)
                     {
-                        int num = 0;
-                        int.TryParse(line, out num);
-                        numbers.Add(num);
+                        if (int.TryParse(line, out int num))
+                            numbers.Add(num);
                     }
                 }
             }
@@ -95,18 +91,19 @@ namespace hw
             {
                 Dispatcher.Invoke(() => { status_2.Text = "Error with reading: " + ex.Message; });
             }
+
             List<int> primes = new List<int>();
             int total = numbers.Count;
             for (int i = 0; i < total; i++)
             {
                 int num = numbers[i];
-                if (prime_num(num) == 1)
+                if (prime_num(num))
                 {
                     primes.Add(num);
                 }
                 int prog = (i + 1) * 100 / total;
                 Dispatcher.Invoke(() => { progress_2.Value = prog; });
-                Thread.Sleep(5); 
+                Thread.Sleep(5);
             }
 
             try
@@ -118,26 +115,25 @@ namespace hw
                         sw.WriteLine(num);
                     }
                 }
-                Dispatcher.Invoke(() => { status_2.Text = "thread 2 found " + primes.Count +
-                                                     " prime numbers in file"; });
+                Dispatcher.Invoke(() => { status_2.Text = $"thread 2 found {primes.Count} prime numbers in file"; });
             }
             catch (Exception ex)
             {
                 Dispatcher.Invoke(() => { status_2.Text = "Error writing prime numbers: " + ex.Message; });
             }
-            
+
             mutex_file.ReleaseMutex();
             Thread thread_3 = new Thread(thread_third);
             thread_3.Start();
         }
-        
+
         private void thread_third()
         {
             mutex_file.WaitOne();
 
-            Dispatcher.Invoke(() => 
-            { 
-                status_3.Text = "thread 3 is filtering primes ending with 7"; 
+            Dispatcher.Invoke(() =>
+            {
+                status_3.Text = "thread 3 is filtering primes ending with 7";
                 progress_3.Value = 0;
             });
 
@@ -152,9 +148,8 @@ namespace hw
                     string line;
                     while ((line = sr.ReadLine()) != null)
                     {
-                        int num = 0;
-                        int.TryParse(line, out num);
-                        primes.Add(num);
+                        if (int.TryParse(line, out int num))
+                            primes.Add(num);
                     }
                 }
             }
@@ -162,6 +157,7 @@ namespace hw
             {
                 Dispatcher.Invoke(() => { status_3.Text = "Error: " + ex.Message; });
             }
+
             List<int> primes7 = new List<int>();
             int total = primes.Count;
             for (int i = 0; i < total; i++)
@@ -185,30 +181,24 @@ namespace hw
                         sw.WriteLine(num);
                     }
                 }
-                Dispatcher.Invoke(() => { status_3.Text = "thread 3 found " + primes7.Count +
-                                                     " numbers ending with 7 in file"; });
+                Dispatcher.Invoke(() => { status_3.Text = $"thread 3 found {primes7.Count} numbers ending with 7 in file"; });
             }
             catch (Exception ex)
             {
                 Dispatcher.Invoke(() => { status_3.Text = "Error with primes: " + ex.Message; });
             }
+
             mutex_file.ReleaseMutex();
         }
-        
-        private int prime_num(int n)
+
+        private bool prime_num(int n)
         {
-            if (n < 2)
-            {
-                return 0;
-            }
+            if (n < 2) return false;
             for (int i = 2; i <= Math.Sqrt(n); i++)
             {
-                if (n % i == 0)
-                {
-                    return 0;
-                }
+                if (n % i == 0) return false;
             }
-            return 1;
+            return true;
         }
     }
 }
