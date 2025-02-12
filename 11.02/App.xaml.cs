@@ -10,9 +10,10 @@ namespace hw
 
         private void app_startup(object sender, StartupEventArgs e)
         {
+            bool createdNew;
             try
             {
-                instance_semaphore = new Semaphore(3, 3, "synchronization_app_instance");
+                instance_semaphore = new Semaphore(3, 3, "synchronization_app_instance", out createdNew);
                 if (!instance_semaphore.WaitOne(0))
                 {
                     MessageBox.Show("Only three copies are allowed",
